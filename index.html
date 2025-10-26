@@ -1,0 +1,608 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SHREE SHYAM AIR SERVICE — Ledger (Fixed)</title>
+
+
+<script src="tailwind.min.js"></script>
+<script src="jspdf.umd.min.js"></script>
+<script src="jspdf.plugin.autotable.min.js"></script>
+
+<style>
+body { font-family: 'Poppins', sans-serif; background: linear-gradient(to bottom, rgba(224,242,254,0.6) 0%, rgba(248,250,252,0.8) 40%, rgba(255,255,255,0.9) 100%), url('https://images.unsplash.com/photo-1549887534-3db1bd59dcca?auto=format&fit=crop&w=1950&q=80'); background-size: cover; background-attachment: fixed; color: #0f172a; min-height: 100vh; }
+.glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(6px); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+th { background: rgba(224,242,254,0.6); }
+.header-title { text-shadow: 1px 2px 3px rgba(0,0,0,0.12); }
+@media (min-width:1024px){ body { padding:32px } }
+</style>
+</head>
+<body class="p-6">
+
+<!-- Login screen added here -->
+<div id="login-screen" class="fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50">
+  <div class="bg-white p-8 rounded shadow-lg w-80 text-center">
+    <h2 class="text-xl font-bold mb-4">Enter Password</h2>
+    <input type="password" id="ledger-password" class="w-full border rounded p-2 mb-4" placeholder="Password" />
+    <button id="login-btn" class="w-full bg-blue-600 text-white rounded p-2">Login</button>
+    <p id="login-error" class="text-red-500 mt-2 hidden">Incorrect password!</p>
+  </div>
+</div>
+
+<!-- Rest of your app starts here -->
+<div class="max-w-7xl mx-auto space-y-6">
+  
+</div>
+
+
+
+<div class="max-w-7xl mx-auto space-y-6">
+<header class="glass p-6 flex items-center justify-between">
+<div>
+<div class="flex items-center space-x-3">
+  <img src="logo.png" alt="Logo" class="w-24 h-24 rounded-full shadow-md">
+ 
+ <h1 class="text-3xl font-bold header-title">SHREE SHYAM AIR SERVICE</h1>
+</div>
+</div>
+<div class="text-right">
+<div id="company-balance" class="bg-blue-100 text-blue-900 px-3 py-1 rounded-full inline-block font-semibold">Balance: ₹0.00</div>
+<p class="text-sm text-slate-500">Data stored locally</p>
+</div>
+</header>
+<main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="glass p-5 space-y-4">
+<h2 class="text-lg font-semibold">Customers</h2>
+<form id="customer-form" class="space-y-2">
+<input id="cust-name" placeholder="Customer name" class="w-full border rounded p-2" required>
+<input id="cust-phone" placeholder="Phone" class="w-full border rounded p-2">
+<input id="cust-address" placeholder="Address" class="w-full border rounded p-2">
+<input id="cust-gst" placeholder="GST Number " class="w-full border rounded p-2">
+
+<div class="flex gap-2">
+<button type="submit" class="flex-1 bg-blue-600 text-white rounded p-2">Add / Update</button>
+<button id="clear-cust" type="button" class="flex-1 border rounded p-2">Clear</button>
+</div>
+</form>
+<hr>
+<h3 class="font-medium">Customer List</h3>
+<div class="overflow-x-auto">
+<table id="cust-list-table" class="text-sm">
+<thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+<hr>
+<h3 class="font-medium">Export / Backup</h3>
+<button id="export-csv" class="w-full bg-green-600 text-white rounded p-2 mb-2">Export All Transactions CSV</button>
+
+
+<select id="pdf-customer" class="w-full border rounded p-2 mb-2">
+  <option value="">-- Select Customer for PDF --</option>
+</select>
+<input type="month" id="pdf-month" class="w-full border rounded p-2 mb-2" />
+<button id="export-pdf-cust" class="w-full border rounded p-2 mb-2">Generate PDF</button>
+
+
+
+<button id="backup-json" class="w-full border rounded p-2 mb-2">Download Backup </button>
+<label for="import-json" class="w-full cursor-pointer bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded p-2 text-center font-medium block">
+  📁 Upload JSON Backup
+</label>
+<input type="file" id="import-json" accept=".json" class="hidden">
+
+
+
+</div>
+<div class="glass p-5 lg:col-span-2 space-y-4">
+<h2 class="text-lg font-semibold">New Transaction</h2>
+<form id="txn-form" class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+<div>
+<label class="text-sm text-slate-600">Date</label>
+<input 
+  id="txn-date" 
+  type="date" 
+  class="w-full border rounded p-2" 
+  required>
+</div>
+<div>
+<label class="text-sm text-slate-600">Customer</label>
+<select id="txn-customer" class="w-full border rounded p-2"></select>
+</div>
+<div>
+<label class="text-sm text-slate-600">Type</label>
+<select id="txn-type" class="w-full border rounded p-2">
+<option value="credit">Credit (Received)</option>
+<option value="debit">Debit (Paid)</option>
+</select>
+</div>
+<div>
+<label class="text-sm text-slate-600">Amount</label>
+<input id="txn-amount" type="number" step="0.01" class="w-full border rounded p-2" required>
+</div>
+<div class="md:col-span-2">
+<label class="text-sm text-slate-600">Narration</label>
+<input id="txn-narration" placeholder="Description / notes" class="w-full border rounded p-2">
+</div>
+<div>
+<button type="submit" class="bg-indigo-600 text-white rounded p-2 w-full">Add Transaction</button>
+</div>
+</form>
+<hr>
+<div class="flex items-center justify-between">
+<h3 class="font-medium">Transactions</h3>
+<p class="text-slate-500 text-sm">Showing <span id="txn-count">0</span> entries</p>
+</div>
+
+
+<div class="overflow-x-auto">
+  <div class="overflow-y-auto max-h-96 border rounded">
+    <table id="txn-table" class="text-sm w-full">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Customer</th>
+          <th>Narration</th>
+          <th>Type</th>
+          <th class="text-right">Amount</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+
+<hr>
+<h2 class="text-lg font-semibold">Reports & Balances</h2>
+<div class="grid md:grid-cols-3 gap-4">
+<div class="glass p-4 text-center">
+<p class="text-slate-500 text-sm">Total Credit</p>
+<h3 id="total-credit" class="text-xl font-bold">₹0.00</h3>
+</div>
+<div class="glass p-4 text-center">
+<p class="text-slate-500 text-sm">Total Debit</p>
+<h3 id="total-debit" class="text-xl font-bold">₹0.00</h3>
+</div>
+<div class="glass p-4 text-center">
+<p class="text-slate-500 text-sm">Net Balance</p>
+<h3 id="net-balance" class="text-xl font-bold">₹0.00</h3>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table id="cust-balance-table" class="text-sm">
+<thead><tr><th>Customer</th><th>Phone</th><th>Balance</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+</main>
+</div>
+<script>
+const STORAGE_KEY = 'ssas_ledger_final';
+function $(id){return document.getElementById(id);}
+function fmtMoney(n){return '₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+let editingCustId = null;
+
+
+
+// Load DB safely
+let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+if (!DB || !DB.customers) DB = { customers: [], txns: [] };
+
+function saveDB(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
+
+function populateCustomerSelects() {
+  ['txn-customer','pdf-customer'].forEach(selId=>{
+    const sel = $(selId); 
+    sel.innerHTML = '';
+    const opt = document.createElement('option'); opt.value=''; opt.text='-- Select --'; sel.appendChild(opt);
+    DB.customers.forEach(c => {
+      const o = document.createElement('option'); o.value = c.id; o.text = c.name; sel.appendChild(o);
+    });
+  });
+}
+
+function renderCustomerList(){
+  const tbody = document.querySelector('#cust-list-table tbody');
+  tbody.innerHTML = '';
+  DB.customers.forEach(c=>{
+    const tr = document.createElement('tr');
+    
+
+
+tr.innerHTML = `
+  <td>${c.name}</td>
+  <td>${c.phone || ''}</td>
+  <td>${c.address || ''}</td>
+  <td class='flex gap-2'>
+    <button class='edit-cust bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded text-sm' title='Edit Customer' data-id='${c.id}'>✏️ </button>
+    <button class='del-cust bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded text-sm' title='Delete Customer' data-id='${c.id}'>🗑️ </button>
+  </td>
+`;
+    
+
+
+tbody.appendChild(tr);
+  });
+  attachCustomerButtons();
+}
+
+
+
+function attachCustomerButtons() {
+  // EDIT customer
+  document.querySelectorAll('.edit-cust').forEach(b => {
+    b.onclick = () => {
+      const c = DB.customers.find(x => x.id === b.dataset.id);
+      if (!c) return;
+      editingCustId = c.id; // Track which customer is being edited
+      $('cust-name').value = c.name;
+      $('cust-phone').value = c.phone || '';
+      $('cust-address').value = c.address || '';
+      $('cust-gst').value = c.gst || '';
+    };
+  });
+
+  // DELETE customer
+  document.querySelectorAll('.del-cust').forEach(b => {
+    b.onclick = () => {
+      if (!confirm('Delete this customer and all their transactions?')) return;
+      const id = b.dataset.id;
+      DB.txns = DB.txns.filter(t => t.customerId !== id);
+      DB.customers = DB.customers.filter(c => c.id !== id);
+      saveDB();
+      renderCustomerList();
+      populateCustomerSelects();
+      renderTransactions();
+      renderCustomerBalances();
+    };
+  });
+}
+
+$('customer-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('cust-name').value.trim();
+  if(!name) return alert('Enter customer name');
+  const phone = $('cust-phone').value.trim();
+  const address = $('cust-address').value.trim();
+  const gst = $('cust-gst').value.trim();
+
+  if(editingCustId){
+    const existing = DB.customers.find(c => c.id === editingCustId);
+    existing.name = name;
+    existing.phone = phone;
+    existing.address = address;
+    existing.gst = gst;
+    editingCustId = null; // reset after editing
+  } else {
+    DB.customers.push({id:'c_'+Date.now(), name, phone, address, gst});
+  }
+
+  saveDB();
+  renderCustomerList();
+  populateCustomerSelects();
+  $('customer-form').reset();
+  renderTransactions();
+  renderCustomerBalances();
+});
+
+
+
+
+
+$('clear-cust').onclick = () => $('customer-form').reset();
+
+$('txn-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const date = $('txn-date').value.trim();
+  const customerId = $('txn-customer').value;
+  const type = $('txn-type').value;
+  const amount = parseFloat($('txn-amount').value);
+  const narration = $('txn-narration').value.trim();
+  if (!date || !customerId || !type || isNaN(amount)) return alert('Fill all fields correctly');
+  DB.txns.push({id:'t_'+Date.now(), date, customerId, type, amount, narration});
+  saveDB(); $('txn-form').reset();
+  renderTransactions(); renderCustomerBalances(); renderCustomerList(); populateCustomerSelects();
+});
+
+// Auto-set current date for date input
+(function setDefaultDate() {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  $('txn-date').value = `${yyyy}-${mm}-${dd}`;
+})();
+
+
+
+
+
+function renderTransactions() {
+  const tbody = document.querySelector('#txn-table tbody');
+  tbody.innerHTML = '';  
+
+// ✅ Sort by date (ascending or descending as you wish)
+// ✅ Sort by date ascending (1, 2, 3, ...)
+const sortedTxns = DB.txns.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+// change to (a.date - b.date) for ascending
+
+sortedTxns.forEach(t => {
+    const cust = DB.customers.find(c => c.id === t.customerId);
+    const tr = document.createElement('tr');
+
+    const d = (t.date || '').split('-');
+    const displayDate = d.length === 3 ? `${d[2]}/${d[1]}/${d[0]}` : t.date || '';
+
+    tr.innerHTML = `
+      <td>${displayDate}</td>
+      <td>${cust ? cust.name : 'N/A'}</td>
+      <td>${t.narration || ''}</td>
+      <td>${t.type}</td>
+      <td class='text-right'>${fmtMoney(t.amount)}</td>
+      <td>
+        <button class='del-txn px-2 py-1 border rounded' data-id='${t.id}'>Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+});
+
+
+
+
+
+
+  // Show total count
+  $('txn-count').innerText = DB.txns.length;
+
+  // Attach delete txn buttons
+  document.querySelectorAll('.del-txn').forEach(b => {
+    b.onclick = () => {
+      if (!confirm('Delete this transaction?')) return;
+      const id = b.dataset.id;
+      DB.txns = DB.txns.filter(t => t.id !== id);
+      saveDB();
+      // Re-render everything necessary
+      renderTransactions();
+      renderCustomerBalances();
+      renderCustomerList();
+      populateCustomerSelects();
+    };
+  });
+}
+
+function renderCustomerBalances(){
+  const tbody = document.querySelector('#cust-balance-table tbody');
+  tbody.innerHTML = '';
+  let totalCredit = 0, totalDebit = 0;
+  DB.customers.forEach(c=>{
+    const custTxns = DB.txns.filter(t=>t.customerId===c.id);
+    const balance = custTxns.reduce((sum,t)=>sum + (t.type==='credit'?t.amount:-t.amount), 0);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${c.name}</td><td>${c.phone||''}</td><td>${fmtMoney(balance)}</td><td></td>`;
+    tbody.appendChild(tr);
+    totalCredit += custTxns.filter(t=>t.type==='credit').reduce((s,t)=>s+t.amount,0);
+    totalDebit += custTxns.filter(t=>t.type==='debit').reduce((s,t)=>s+t.amount,0);
+  });
+  $('total-credit').innerText = fmtMoney(totalCredit);
+  $('total-debit').innerText = fmtMoney(totalDebit);
+  $('net-balance').innerText = fmtMoney(totalCredit - totalDebit);
+  $('company-balance').innerText = `Balance: ${fmtMoney(totalCredit - totalDebit)}`;
+}
+
+// CSV Export
+$('export-csv').onclick = () => {
+  if(!DB.txns.length) return alert('No transactions to export');
+  let csv = 'Date,Customer,Narration,Type,Amount\n';
+  DB.txns.forEach(t=>{
+    const c = DB.customers.find(cust=>cust.id===t.customerId);
+    csv += `"${t.date}","${c?c.name:'N/A'}","${t.narration}","${t.type}","${t.amount}"\n`;
+  });
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'ledger_transactions.csv'; a.click(); URL.revokeObjectURL(url);
+};
+
+// JSON Backup
+$('backup-json').onclick = ()=> {
+  const data = JSON.stringify(DB,null,2);
+  const blob = new Blob([data],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'ledger_backup.json'; a.click(); URL.revokeObjectURL(url);
+};
+
+// JSON Import
+$('import-json').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const imported = JSON.parse(ev.target.result);
+      if(imported.customers && imported.txns){
+        DB = imported; saveDB();
+        renderCustomerList(); populateCustomerSelects(); renderTransactions(); renderCustomerBalances();
+        alert('Data imported successfully!');
+      }else{ alert('Invalid JSON file.'); }
+    }catch(err){ alert('Error reading JSON file.'); }
+  }
+  reader.readAsText(file);
+});
+
+
+
+// Export PDF for selected customer (Date - Narration - Debit - Credit - Balance)
+
+$('export-pdf-cust').onclick = () => {
+  try {
+    const custId = $('pdf-customer').value;
+    const selectedMonth = $('pdf-month').value; // format: "YYYY-MM"
+
+    if (!custId) return alert('Select a customer');
+    if (!selectedMonth) return alert('Select a month');
+
+    // Separate year and month
+    const [year, month] = selectedMonth.split('-');
+
+    // Filter transactions for the selected customer and month
+    const txns = DB.txns
+      .filter(t => {
+        if (t.customerId !== custId || !t.date) return false;
+        const [tYear, tMonth] = t.date.split('-');
+        return tYear === year && tMonth === month;
+      })
+      .slice()
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    if (!txns.length) return alert('No transactions found for this month');
+
+
+
+
+    if (!txns.length) return alert('No transactions for this customer');
+    const c = DB.customers.find(cu => cu.id === custId);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'pt', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 60;
+    let balance = 0;
+
+    // header
+
+// Header (your existing code)
+  doc.setFontSize(20);
+  doc.setTextColor(0,0,0);
+  doc.text('SHREE SHYAM AIR SERVICE', pageWidth/2, y, {align: 'center'});
+  y += 20;
+  doc.setFontSize(13);
+  doc.text('17, RESHAMWALA MARKET, RING ROAD, SURAT', pageWidth/2, y, {align: 'center'});
+  y += 20;
+  doc.setFontSize(12);
+  doc.text('Ledger Statement', pageWidth/2, y, {align: 'center'});
+    y += 20;
+    doc.setFontSize(12);
+    doc.text(`Customer Name: ${c ? c.name : ''}`, 40, y);
+  y += 20;
+  doc.text(`Phone: ${c.phone}`, 40, y);
+  y += 20;
+  doc.text(`Address: ${c.address || '-'}`, 40, y);
+  y += 20;
+  doc.text(`GST Number: ${c.gst || '-'}`, 40, y);
+    y += 18;
+    doc.setFontSize(12);
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-GB')}`, 40, y);
+    y += 18;
+
+    // table header
+    doc.setFontSize(12);
+    doc.text('Date', 40, y);
+    doc.text('Narration', 110, y);
+    doc.text('Debit', 350, y, { align: 'right' });
+    doc.text('Credit', 440, y, { align: 'right' });
+    doc.text('Balance', 520, y, { align: 'right' });
+    y += 10;
+    doc.line(40, y, pageWidth - 40, y);
+    y += 14;
+
+    // body rows
+    txns.forEach(t => {
+      const parts = (t.date || '').split('-'); // "YYYY","MM","DD"
+      const displayDate = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : (t.date || '');
+      const amt = Number(t.amount) || 0;
+      let debitText = '', creditText = '';
+
+      if (t.type === 'debit') {
+        balance -= amt;
+        debitText = amt.toFixed(2);
+      } else { // treat anything else as credit
+        balance += amt;
+        creditText = amt.toFixed(2);
+      }
+
+      // write row
+      doc.setFontSize(10);
+      doc.text(displayDate, 40, y);
+      // narration may be long — allow truncation if too long
+      const narration = (t.narration || '').toString();
+      doc.text(narration, 110, y, { maxWidth: 220 });
+      if (debitText) doc.text(debitText, 350, y, { align: 'right' });
+      if (creditText) doc.text(creditText, 440, y, { align: 'right' });
+      doc.text(balance.toFixed(2), 520, y, { align: 'right' });
+
+      y += 16;
+
+      // new page if required
+      if (y > 760) {
+        doc.addPage();
+        y = 60;
+        // repeat header on new page
+        doc.setFontSize(11);
+        doc.text('Date', 40, y);
+        doc.text('Narration', 110, y);
+        doc.text('Debit', 350, y, { align: 'right' });
+        doc.text('Credit', 440, y, { align: 'right' });
+        doc.text('Balance', 520, y, { align: 'right' });
+        y += 14;
+      }
+    });
+
+    // footer / closing balance
+    y += 8;
+    doc.line(40, y, pageWidth - 40, y);
+    y += 16;
+    doc.setFontSize(12);
+    doc.text(`Closing Balance: ₹${balance.toFixed(2)}`, pageWidth - 150, y, { align: 'right' });
+
+    // save
+    const monthName = new Date(`${selectedMonth}-01`).toLocaleString('default', { month: 'long', year: 'numeric' });
+doc.save(`${(c && c.name ? c.name.replace(/\s+/g, '_') : 'ledger')}_${monthName}_ledger.pdf`);
+
+
+  } catch (err) {
+    console.error('PDF export error', err);
+    alert('Error creating PDF. See console for details.');
+  }
+};
+
+
+
+
+
+
+// Initial render
+populateCustomerSelects(); renderCustomerList(); renderTransactions(); renderCustomerBalances();
+
+// ===== Password protection =====
+const PASSWORD = 'kakaji';
+const loginScreen = document.getElementById('login-screen');
+const loginBtn = document.getElementById('login-btn');
+const loginInput = document.getElementById('ledger-password');
+const loginError = document.getElementById('login-error');
+
+loginBtn.addEventListener('click', () => {
+  if (loginInput.value === PASSWORD) {
+    loginScreen.style.display = 'none';
+  } else {
+    loginError.classList.remove('hidden');
+    loginInput.value = '';
+    loginInput.focus();
+  }
+});
+
+loginInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') loginBtn.click();
+});
+
+// ===== Other app code starts here =====
+
+</script>
+
+</body>
+</html>
